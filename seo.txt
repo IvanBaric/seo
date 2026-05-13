@@ -1,0 +1,1056 @@
+Unutar "packages/ivanbaric/seo" napravi profesionalni Laravel package:
+
+Package:
+ivanbaric/seo
+
+Repository:
+https://github.com/IvanBaric/seo.git
+
+Temeljni shared infrastructure package:
+ivanbaric/corexis
+https://github.com/IvanBaric/corexis.git
+
+CILJ:
+Izraditi reusable SEO package koji radi u svakoj Laravel aplikaciji i na bilo kojem Eloquent modelu koji koristi HasSeo trait.
+
+Package mora biti:
+- Laravel package, ne app-specific implementacija
+- backend-first
+- model-agnostic
+- tenant-aware preko Corexisa
+- locale-aware preko Corexisa
+- config-driven
+- fallback-driven
+- schema-aware
+- sitemap-aware
+- sigurnosno ispravan
+- testiran
+- kompatibilan s Laravel 11 i Laravel 12
+- kompatibilan s PHP 8.2+
+- spreman za Packagist
+
+VAŽNO:
+SEO package MORA koristiti ivanbaric/corexis za context.
+
+Corexis daje:
+- TenantResolver
+- LocaleResolver
+- ActorResolver ako zatreba
+- SourceResolver ako zatreba
+- ActionResult ako postoji i ima smisla
+
+SEO package NE smije:
+- implementirati vlastiti tenant resolver
+- implementirati vlastiti locale resolver
+- hardkodirati jezike
+- hardkodirati team_id
+- hardkodirati App\Models\User
+- znati što je Team
+- znati što je Velora
+- biti CMS package samo za Post/Page modele
+- koristiti auth() direktno
+- koristiti app()->getLocale() direktno
+- koristiti current_team_id() direktno
+- koristiti team() direktno
+
+Ako treba tenant, koristi:
+IvanBaric\Corexis\Contracts\TenantResolver
+
+Ako treba locale, koristi:
+IvanBaric\Corexis\Contracts\LocaleResolver
+
+Ako treba actor ili source za buduće potrebe, koristi:
+IvanBaric\Corexis\Contracts\ActorResolver
+IvanBaric\Corexis\Contracts\SourceResolver
+
+Ako se stvarni API Corexis contracta razlikuje, koristi stvarni API iz lokalnog corexis packagea. Nemoj izmišljati paralelne resolvere u SEO packageu.
+
+────────────────────────────────────────
+1. PACKAGE KONCEPT
+────────────────────────────────────────
+
+Package rješava SEO za bilo koji Eloquent model:
+
+- Post
+- Page
+- Vehicle
+- Product
+- Category
+- Service
+- Team
+- bilo koji custom model
+
+Model koristi:
+
+use IvanBaric\Seo\Concerns\HasSeo;
+
+Package mora omogućiti:
+
+1. ručno spremljene SEO podatke u seo_meta tablici
+2. automatske fallback SEO podatke iz modela
+3. globalni fallback iz configa
+4. Open Graph meta tagove
+5. Twitter/X meta tagove
+6. canonical URL
+7. robots direktive
+8. JSON-LD schema.org podatke
+9. sitemap generiranje
+10. hreflang / alternate linkove ako Corexis LocaleResolver vraća više jezika
+11. tenant-aware pohranu ako je tenancy uključena u Corexisu
+12. locale-aware pohranu ako je locale uključen u Corexisu
+
+SEO fallback redoslijed:
+
+1. ručno spremljena vrijednost iz seo_meta
+2. model seoDefaults()
+3. fallback atributi iz modela prema configu
+4. globalni defaults iz configa
+5. null
+
+Primjer:
+Ako model ima ručno unesen seo title, koristi njega.
+Ako nema, koristi $model->seoDefaults()['title'].
+Ako nema, pokušaj model attribute title/name/label.
+Ako nema, koristi globalni site title fallback.
+
+────────────────────────────────────────
+2. STRUKTURA PACKAGEA
+────────────────────────────────────────
+
+Napravi strukturu:
+
+src/
+  SeoServiceProvider.php
+  Console/
+    InstallSeoCommand.php
+    GenerateSitemapCommand.php
+    ClearSeoCacheCommand.php
+  Concerns/
+    HasSeo.php
+  Contracts/
+    SeoUrlResolver.php
+    SeoImageResolver.php
+    SeoRenderer.php
+    SeoSchemaBuilder.php
+    SitemapSource.php
+  Data/
+    SeoData.php
+    SeoImageData.php
+    SeoSchemaData.php
+    SitemapUrlData.php
+    AlternateUrlData.php
+  Exceptions/
+    SeoException.php
+    MissingCanonicalUrlException.php
+    InvalidSeoFieldException.php
+    InvalidRobotsDirectiveException.php
+  Models/
+    SeoMeta.php
+  Resolvers/
+    DefaultSeoUrlResolver.php
+    DefaultSeoImageResolver.php
+    DefaultSeoSchemaBuilder.php
+  Services/
+    SeoManager.php
+    SeoMetaRepository.php
+    HtmlSeoRenderer.php
+    SitemapGenerator.php
+    HreflangGenerator.php
+  Support/
+    SeoConfig.php
+    SeoContext.php
+    SeoFallbackResolver.php
+    SeoValueNormalizer.php
+    SeoRobots.php
+    SeoUniqueKey.php
+    SchemaJson.php
+  Facades/
+    Seo.php
+  helpers.php
+
+config/
+  seo.php
+
+database/migrations/
+  create_seo_meta_table.php.stub
+
+routes/
+  web.php
+
+resources/views/components/
+  meta.blade.php
+
+tests/
+  Feature/
+  Unit/
+  Fixtures/
+
+composer.json
+README.md
+phpunit.xml.dist
+.gitignore
+
+SEO package NE smije imati:
+- TenantResolver implementaciju
+- LocaleResolver implementaciju
+- vlastiti tenant context sustav
+- vlastiti locale context sustav
+
+Za context napravi samo thin adapter:
+IvanBaric\Seo\Support\SeoContext
+
+SeoContext koristi Corexis contracte i vraća tenant/locale podatke potrebne SEO packageu.
+
+────────────────────────────────────────
+3. COMPOSER
+────────────────────────────────────────
+
+composer.json mora biti package-ready.
+
+Require:
+- php ^8.2
+- ivanbaric/corexis ^0.1 || ^1.0
+- illuminate/support ^11.0|^12.0
+- illuminate/database ^11.0|^12.0
+- illuminate/console ^11.0|^12.0
+- illuminate/contracts ^11.0|^12.0
+
+Autoload:
+IvanBaric\\Seo\\ => src/
+
+Files autoload:
+src/helpers.php
+
+Auto-discovery:
+IvanBaric\Seo\SeoServiceProvider
+
+Dev dependencies:
+- orchestra/testbench
+- pestphp/pest ili phpunit
+- laravel/pint
+- phpstan/phpstan ili larastan ako je praktično
+
+Ne dodavati:
+- Livewire
+- Flux UI
+- Velora
+- media package
+- konkretan app package
+
+────────────────────────────────────────
+4. CONFIG
+────────────────────────────────────────
+
+Napravi config/seo.php.
+
+Config je javni API packagea. Mora biti stabilan i stvarno korišten.
+
+Obavezni config segmenti:
+
+- enabled
+- models.seo_meta
+- table.name
+- table.connection
+- uuid.enabled
+- uuid.column
+- corexis.tenant.mode = inherit
+- corexis.locale.mode = inherit
+- corexis.actor.mode = inherit
+- corexis.source.mode = inherit
+- locale.enabled
+- locale.store_default_locale
+- locale.fallback_to_default_locale
+- locale.default_locale_key = __default
+- defaults.site_name
+- defaults.title
+- defaults.description
+- defaults.robots
+- defaults.canonical
+- defaults.og_type
+- defaults.twitter_card
+- limits.title_max_length
+- limits.description_max_length
+- fallbacks.title
+- fallbacks.description
+- fallbacks.image
+- fallbacks.canonical
+- robots.allowed
+- open_graph.enabled
+- twitter.enabled
+- images.resolver
+- images.default
+- canonical.enabled
+- canonical.resolver
+- hreflang.enabled
+- schema.enabled
+- schema.default_builder
+- sitemap.enabled
+- sitemap.route_enabled
+- sitemap.route_path
+- sitemap.models
+- renderer.class
+- cache.enabled
+- cache.prefix
+- cache.ttl
+- routes.enabled
+- routes.middleware
+
+Ne koristiti closures u configu.
+Ne hardkodirati app modele u default configu.
+Ne hardkodirati jezike.
+Ne hardkodirati team_id.
+
+README mora biti usklađen sa stvarnim configom.
+Testovi moraju dokazati da se config koristi.
+
+────────────────────────────────────────
+5. MIGRACIJA
+────────────────────────────────────────
+
+Napravi publishable migration stub:
+
+database/migrations/create_seo_meta_table.php.stub
+
+Tablica default:
+seo_meta
+
+Polja:
+
+id
+uuid nullable unique
+unique_key string(64) unique
+tenant_type nullable index
+tenant_id nullable index
+tenant_uuid nullable index
+seoable_type index
+seoable_id index
+seoable_uuid nullable index
+locale nullable index
+title nullable string
+description nullable text
+keywords nullable json
+canonical_url nullable text
+robots nullable string
+og_title nullable string
+og_description nullable text
+og_image nullable text
+og_type nullable string
+twitter_title nullable string
+twitter_description nullable text
+twitter_image nullable text
+twitter_card nullable string
+schema nullable json
+metadata nullable json
+created_at
+updated_at
+
+Indeksi:
+- unique_key unique
+- seoable_type + seoable_id
+- seoable_uuid
+- tenant_type + tenant_id
+- tenant_uuid
+- locale
+- updated_at
+
+unique_key je obavezan jer nullable tenant/locale polja nisu pouzdana za composite unique index između različitih baza.
+
+SeoUniqueKey generira hash iz:
+
+tenant_type ili none
+tenant_id ili none
+seoable_type
+seoable_id
+locale ili __default
+
+Primjer:
+hash('sha256', "{$tenantType}|{$tenantId}|{$seoableType}|{$seoableId}|{$localeKey}")
+
+Migracija mora koristiti:
+config('seo.table.name')
+config('seo.table.connection')
+
+Ne hardkodirati connection.
+
+────────────────────────────────────────
+6. SEOMETA MODEL
+────────────────────────────────────────
+
+Model:
+IvanBaric\Seo\Models\SeoMeta
+
+Zahtjevi:
+- extends Model
+- guarded = []
+- getTable() čita config('seo.table.name')
+- connection čita config('seo.table.connection')
+- casts:
+  - keywords => array
+  - schema => array
+  - metadata => array
+- relation:
+  - seoable(): MorphTo
+
+Ako uuid.enabled = true, automatski generirati UUID pri creating koristeći Str::uuid().
+Ne ovisiti o app HasUuid traitu.
+
+Metode:
+- isIndexable(): bool
+- robotsArray(): array
+- hasManualValue(string $field): bool
+
+────────────────────────────────────────
+7. HASSEO TRAIT
+────────────────────────────────────────
+
+Trait:
+IvanBaric\Seo\Concerns\HasSeo
+
+Dodati:
+
+Relations:
+- seoMetas(): MorphMany
+
+Metode:
+- seoMeta(?string $locale = null): ?SeoMeta
+- seoMetaQuery(?string $locale = null): Builder
+- getOrCreateSeoMeta(?string $locale = null): SeoMeta
+- updateSeo(array $data, ?string $locale = null): SeoMeta
+- seoData(?string $locale = null): SeoData
+- seoDefaults(): array
+- seoSchema(): array
+- seoCanonicalUrl(): ?string
+- seoImageUrl(): ?string
+- shouldBeIndexed(): bool
+
+Default:
+- seoDefaults() vraća []
+- seoSchema() vraća []
+- seoCanonicalUrl() vraća null
+- seoImageUrl() vraća null
+- shouldBeIndexed() vraća true
+
+Model može overrideati bilo koju metodu.
+
+Trait mora koristiti SeoMetaRepository / SeoManager.
+Trait ne smije znati konkretne modele aplikacije.
+
+────────────────────────────────────────
+8. SEOCONTEXT PREKO COREXISA
+────────────────────────────────────────
+
+Napravi:
+IvanBaric\Seo\Support\SeoContext
+
+SeoContext koristi:
+- TenantResolver
+- LocaleResolver
+- po potrebi ActorResolver
+- po potrebi SourceResolver
+
+Odgovornost:
+- currentTenantId()
+- currentTenantType()
+- currentTenantUuid()
+- currentLocale()
+- defaultLocale()
+- availableLocales()
+
+Ako Corexis tenancy nije uključena, tenant vrijednosti su null.
+Ako Corexis locale nije uključena, koristi config('seo.locale.default_locale_key') ili Corexis default ako postoji.
+
+Ne duplicirati Corexis logiku.
+Ne dohvaćati app locale direktno preko app()->getLocale().
+Ne dohvaćati tenant preko current_team_id().
+
+Ako Corexis trenutno nema type/uuid metode, koristi dostupni API i ostavi ostala polja null.
+
+────────────────────────────────────────
+9. DATA DTO
+────────────────────────────────────────
+
+Napravi:
+
+IvanBaric\Seo\Data\SeoData
+
+Readonly DTO s poljima:
+
+- ?string title
+- ?string description
+- array keywords
+- ?string canonicalUrl
+- string robots
+- ?string ogTitle
+- ?string ogDescription
+- ?string ogImage
+- string ogType
+- ?string twitterTitle
+- ?string twitterDescription
+- ?string twitterImage
+- string twitterCard
+- array schema
+- array metadata
+- array alternates
+
+Metode:
+- fromArray(array $data): self
+- toArray(): array
+- withDefaults(array $defaults): self
+- isIndexable(): bool
+
+Ne koristiti kaotičan array API bez tipova.
+
+────────────────────────────────────────
+10. SEOMANAGER
+────────────────────────────────────────
+
+Service:
+IvanBaric\Seo\Services\SeoManager
+
+Odgovornosti:
+- resolve SEO data za model
+- resolve SEO data iz arraya
+- render HTML
+- dohvatiti current locale preko Corexisa
+- dohvatiti tenant preko Corexisa
+- koristiti SeoMetaRepository
+- koristiti SeoFallbackResolver
+- koristiti SeoRenderer
+
+Minimalni API:
+
+$seoManager->for(Model $model, ?string $locale = null): SeoData
+$seoManager->render(Model|SeoData|array $source, ?string $locale = null): HtmlString
+$seoManager->fromArray(array $data): SeoData
+
+Helper:
+seo(): SeoManager
+
+Facade optional:
+Seo::for($model)->render()
+
+Service mora raditi kroz dependency injection i bez facadea.
+
+────────────────────────────────────────
+11. FALLBACK RESOLUTION
+────────────────────────────────────────
+
+SeoFallbackResolver mora raditi redoslijedom:
+
+1. manual seo_meta field
+2. model seoDefaults()
+3. model method fallback
+4. model attributes from config fallbacks
+5. global config defaults
+
+Primjeri:
+
+title:
+seo_meta.title
+seoDefaults()['title']
+model title/name/label/headline
+config('seo.defaults.title')
+
+description:
+seo_meta.description
+seoDefaults()['description']
+model excerpt/description/summary/content
+config('seo.defaults.description')
+
+og_title:
+seo_meta.og_title
+seo_meta.title
+resolved SEO title
+
+twitter_title:
+seo_meta.twitter_title
+seo_meta.og_title
+resolved SEO title
+
+image:
+seo_meta.og_image
+seoDefaults()['image']
+model seoImageUrl()
+configured image attributes
+config('seo.images.default')
+
+canonical:
+seo_meta.canonical_url
+seoDefaults()['canonical_url']
+model seoCanonicalUrl()
+route map from config sitemap.models
+request URL samo kao izolirani final fallback pri renderiranju trenutne web stranice, ne u CLI-ju
+
+────────────────────────────────────────
+12. RENDERER
+────────────────────────────────────────
+
+Service:
+HtmlSeoRenderer
+
+Mora vratiti Illuminate\Support\HtmlString.
+
+Renderira:
+- title
+- description
+- keywords
+- robots
+- canonical
+- Open Graph
+- Twitter/X
+- hreflang
+- JSON-LD schema
+
+Sigurnost:
+- escape HTML output
+- escape HTML attributes
+- ne renderirati raw user input
+- JSON-LD koristiti json_encode s JSON_UNESCAPED_SLASHES, JSON_UNESCAPED_UNICODE i sigurnosnim HEX flagovima
+- ne renderirati null vrijednosti kao prazne tagove
+- ne renderirati duplicate canonical tagove
+- ne renderirati duplicate title tagove
+- ne dopustiti javascript: URL
+- ne dopustiti data: URL
+- canonical i image URL moraju biti http/https absolute URL ili validan app-relative URL pretvoren u absolute URL
+
+Renderer mora biti testiran.
+
+────────────────────────────────────────
+13. NORMALIZER I ROBOTS
+────────────────────────────────────────
+
+SeoValueNormalizer:
+- trim stringova
+- squish whitespace
+- limit title length
+- limit description length
+- normalizirati keywords u array
+- ukloniti prazne i duplicate keywords
+- normalizirati robots string
+- validirati robots directive
+- pretvoriti relativni canonical URL u absolute ako config to traži
+
+SeoRobots:
+- make(string|array $directives): string
+- isIndexable(string $robots): bool
+- validate(string $robots): void
+
+Podržati:
+- index,follow
+- noindex,follow
+- index,nofollow
+- noindex,nofollow
+- dodatne directive iz configa
+
+Ako model shouldBeIndexed() vrati false, default robots je noindex,nofollow osim ako ručni SEO override izričito kaže drugačije i config to dopušta.
+
+────────────────────────────────────────
+14. URL, IMAGE I SCHEMA RESOLVERI
+────────────────────────────────────────
+
+SeoUrlResolver:
+- resolve(Model $model, ?string $locale = null): ?string
+- alternate(Model $model, string $locale): ?string
+
+DefaultSeoUrlResolver:
+1. model seoCanonicalUrl()
+2. seoDefaults()['canonical_url']
+3. config sitemap.models route + route_key
+4. null
+
+SeoImageResolver:
+- resolve(Model $model, ?string $locale = null): ?string
+
+DefaultSeoImageResolver:
+1. model seoImageUrl()
+2. seoDefaults()['image']
+3. atributi iz config fallbacks.image
+4. config('seo.images.default')
+5. null
+
+SeoSchemaBuilder:
+- build(Model|SeoData|array $source): array
+
+Default schema:
+- @context = https://schema.org
+- @type = WebPage
+- name = resolved title
+- description = resolved description
+- url = canonical
+
+Ako model ima seoSchema(), mergeaj ga s default schema ako config schema.merge_model_schema = true.
+
+Ne uvoditi hard dependency na media package.
+Model može overrideati seoImageUrl().
+
+────────────────────────────────────────
+15. HREFLANG I SITEMAP
+────────────────────────────────────────
+
+HreflangGenerator:
+- koristi Corexis LocaleResolver
+- dohvaća available localeove
+- za svaki locale koristi SeoUrlResolver::alternate()
+- preskače locale ako alternate URL ne postoji
+- ako include_x_default = true, koristi default locale URL kao x-default
+
+Ne hardkodirati /hr ili /en.
+
+SitemapGenerator:
+- koristi config seo.sitemap.models
+- nema znanja o app modelima
+- koristi query builder
+- ako model ima scopePublished ili shouldBeIndexed, koristi ih ako postoje
+- koristi chunk_size iz configa
+- generira XML sitemap
+- koristi canonical URL resolver
+- uključuje lastmod ako model ima updated_at
+- uključuje hreflang alternates ako postoje
+- cacheira ako cache_enabled = true
+
+Route:
+GET /sitemap.xml
+
+Samo ako:
+seo.sitemap.enabled = true
+seo.sitemap.route_enabled = true
+seo.routes.enabled = true
+
+Command:
+php artisan seo:generate-sitemap
+
+Opcije:
+--fresh
+--write=public/sitemap.xml
+--no-cache
+
+Ako --write nije postavljen, command generira output ili warm cache.
+
+────────────────────────────────────────
+16. BLADE I INSTALL COMMAND
+────────────────────────────────────────
+
+Blade component:
+
+<x-seo::meta :model="$post" />
+<x-seo::meta :data="$seoData" />
+
+Direktno korištenje:
+
+{!! seo()->render($post) !!}
+{!! app(SeoManager::class)->render($post) !!}
+
+Command:
+php artisan seo:install
+
+Radi:
+1. publish config
+2. publish migrations
+3. publish views
+4. ispiše upute za php artisan migrate
+5. ispiše primjer HasSeo korištenja
+6. ispiše napomenu da package koristi Corexis za tenant/locale context
+
+Ne generirati app-specific modele.
+Ne generirati Livewire UI.
+
+Publish tagovi:
+- seo-config
+- seo-migrations
+- seo-views
+
+────────────────────────────────────────
+17. SERVICE PROVIDER
+────────────────────────────────────────
+
+SeoServiceProvider:
+
+register():
+- mergeConfigFrom config/seo.php
+- bind SeoManager
+- bind SeoMetaRepository
+- bind SeoRenderer na config renderer.class
+- bind SeoUrlResolver na config canonical.resolver
+- bind SeoImageResolver na config images.resolver
+- bind SeoSchemaBuilder na config schema.default_builder
+
+boot():
+- publish config
+- publish migrations
+- publish views
+- loadViewsFrom resources/views, namespace seo
+- loadRoutesFrom routes/web.php ako routes.enabled true
+- register commands u console kontekstu
+
+Ne dodavati admin route.
+Ne dodavati Livewire route.
+Jedina web ruta u v1 smije biti sitemap.xml.
+
+────────────────────────────────────────
+18. CACHE
+────────────────────────────────────────
+
+Cache key mora uključiti:
+- tenant context
+- locale
+- model class
+- model id
+- model updated_at
+- seo_meta updated_at ako postoji
+
+Dodaj command:
+php artisan seo:clear-cache
+
+U v1 cache neka bude jednostavan.
+Ne over-engineerati.
+
+────────────────────────────────────────
+19. TESTOVI
+────────────────────────────────────────
+
+Koristi Orchestra Testbench.
+
+Dodaj fake Corexis resolvere u tests/Fixtures:
+- FakeTenantResolver
+- FakeLocaleResolver
+- FakeActorResolver ako treba
+- FakeSourceResolver ako treba
+
+Testovi moraju pokriti:
+
+Config:
+- config se mergea
+- custom table name radi
+- custom renderer binding radi
+
+Migration/Model:
+- seo_meta migracija radi
+- SeoMeta se može spremiti
+- casts rade
+- getTable koristi config
+- unique_key se generira
+
+Corexis integration:
+- tenant disabled radi
+- tenant enabled dodaje tenant podatke
+- locale disabled koristi default key
+- locale enabled sprema current locale
+- custom LocaleResolver radi
+
+HasSeo:
+- seoMetas relation radi
+- getOrCreateSeoMeta radi
+- updateSeo radi
+- seoDefaults fallback radi
+- model override seoCanonicalUrl radi
+- model override seoImageUrl radi
+- model override seoSchema radi
+
+Fallback:
+- manual title ima prioritet
+- seoDefaults title ima drugi prioritet
+- attribute fallback radi
+- config default radi
+- OG fallback radi
+- Twitter fallback radi
+
+Renderer:
+- renderira title, description, canonical, robots, OG, Twitter, schema
+- escapea HTML
+- ne renderira null tagove
+- ne dopušta unsafe URL scheme
+
+Robots:
+- index/follow radi
+- noindex/nofollow radi
+- invalid directive baca exception
+
+Hreflang:
+- generira alternates za više localeova
+- x-default radi
+
+Sitemap:
+- sitemap route vraća XML
+- generator uključuje configured modele
+- preskače noindex modele
+- koristi canonical URL
+- command radi
+
+Commands:
+- seo:install radi
+- seo:clear-cache radi
+- seo:generate-sitemap radi
+
+Package bez testova nije prihvatljiv.
+
+────────────────────────────────────────
+20. README
+────────────────────────────────────────
+
+README mora sadržavati:
+
+1. What is IvanBaric SEO
+2. What this package is not
+3. Installation
+4. Requirements
+5. Corexis dependency
+6. Publishing config and migrations
+7. Basic usage with HasSeo
+8. Manual SEO update
+9. Rendering meta tags
+10. SEO fallbacks
+11. Tenant awareness through Corexis
+12. Locale awareness through Corexis
+13. Canonical URLs
+14. Open Graph
+15. Twitter/X cards
+16. Schema.org JSON-LD
+17. Hreflang
+18. Sitemap
+19. Security notes
+20. Testing
+21. Configuration reference
+
+README mora pokazati stvarni API.
+Ne prikazivati metode koje ne postoje.
+Ne prikazivati config ključeve koji ne postoje.
+
+────────────────────────────────────────
+21. ZABRANE
+────────────────────────────────────────
+
+Ne raditi:
+- admin UI
+- Livewire komponente
+- Flux UI
+- SEO editor u v1
+- dependency na Veloru
+- dependency na media package
+- hardkodirane Post/Page/Vehicle modele
+- hardkodirani team_id
+- hardkodiranu locale listu
+- auth() direktno
+- app()->getLocale() direktno
+- current_team_id() direktno
+- closures u configu
+- spremanje SEO podataka u svaku model tablicu
+- analytics
+- keyword stuffing logiku
+- automatsko umjetno “SEO optimiziranje” teksta
+- duplicate meta tagove
+
+────────────────────────────────────────
+22. PRIHVATNI KRITERIJI
+────────────────────────────────────────
+
+Zadatak je gotov tek kad:
+
+1. Package je validan Laravel package.
+2. composer.json je ispravan.
+3. Package ovisi o Corexisu.
+4. SeoServiceProvider radi.
+5. config/seo.php postoji i koristi se.
+6. Migration stub za seo_meta postoji.
+7. SeoMeta model radi.
+8. HasSeo trait radi na bilo kojem Eloquent modelu.
+9. SeoContext koristi Corexis TenantResolver i LocaleResolver.
+10. SeoManager resolvea SeoData.
+11. Fallback redoslijed radi.
+12. Renderer generira sigurne meta tagove.
+13. Open Graph radi.
+14. Twitter/X meta radi.
+15. Canonical URL radi.
+16. Robots radi.
+17. Schema JSON-LD radi.
+18. Hreflang radi ako Corexis LocaleResolver ima više jezika.
+19. Sitemap generator radi.
+20. Sitemap route radi.
+21. Commands postoje.
+22. Testovi pokrivaju core ponašanje.
+23. Testovi pokrivaju Corexis integraciju.
+24. README je usklađen sa stvarnim kodom.
+25. Nema app-specific koda.
+26. Nema UI koda.
+27. Nema hardkodirane tenancy/locale logike.
+
+────────────────────────────────────────
+23. REDOSLIJED RADA
+────────────────────────────────────────
+
+Radi po fazama:
+
+FAZA 1:
+- composer.json
+- SeoServiceProvider
+- config/seo.php
+- migration stub
+- SeoMeta model
+
+FAZA 2:
+- Contracts
+- DTO klase
+- SeoContext preko Corexisa
+- SeoUniqueKey
+- SeoMetaRepository
+
+FAZA 3:
+- HasSeo trait
+- tenant/locale integration preko Corexisa
+- updateSeo / getOrCreateSeoMeta
+
+FAZA 4:
+- SeoFallbackResolver
+- SeoValueNormalizer
+- SeoRobots
+
+FAZA 5:
+- SeoManager
+- HtmlSeoRenderer
+- helper seo()
+- optional facade
+
+FAZA 6:
+- SeoUrlResolver
+- SeoImageResolver
+- SeoSchemaBuilder
+
+FAZA 7:
+- HreflangGenerator
+- SitemapGenerator
+- sitemap route
+- commands
+
+FAZA 8:
+- tests
+- README
+- Laravel Pint
+- full test run
+
+────────────────────────────────────────
+24. FINALNI IZVJEŠTAJ
+────────────────────────────────────────
+
+Nakon implementacije napiši:
+
+- koje datoteke su dodane
+- koje datoteke su promijenjene
+- kako se instalira package
+- kako se publishaju config i migracije
+- kako model koristi HasSeo
+- kako se renderiraju meta tagovi
+- kako SEO package koristi Corexis
+- koje Corexis contracte koristi
+- koje testove pokrenuti
+- jesu li testovi prošli
+- poznata ograničenja v1 verzije
+
+FINALNA ARHITEKTURNA REČENICA:
+
+Corexis daje tenant/locale/actor/source context.
+SEO package ne zna odakle taj context dolazi.
+Modeli daju svoje SEO default vrijednosti.
+SeoMeta sprema ručne override vrijednosti.
+Renderer sigurno pretvara SeoData u HTML meta tagove.
+Sitemap i hreflang koriste iste resolver/fallback mehanizme.
+
+Ovo mora biti package koji mogu ugraditi u svaku Laravel aplikaciju bez prepisivanja arhitekture.
