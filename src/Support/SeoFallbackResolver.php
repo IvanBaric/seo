@@ -97,11 +97,19 @@ final class SeoFallbackResolver
      */
     private function robots(Model $model, ?SeoMeta $meta, array $defaults): string
     {
+        $shouldBeIndexed = ! method_exists($model, 'shouldBeIndexed') || $model->shouldBeIndexed();
+
+        if (! (bool) config('seo.robots.allow_manual_index_override', true) && method_exists($model, 'shouldBeIndexed')) {
+            return $shouldBeIndexed
+                ? $this->normalizer->robots($defaults['robots'] ?? config('seo.defaults.robots', 'index,follow'))
+                : 'noindex,nofollow';
+        }
+
         if ($meta?->hasManualValue('robots')) {
             return $this->normalizer->robots($meta->robots);
         }
 
-        if (method_exists($model, 'shouldBeIndexed') && ! $model->shouldBeIndexed()) {
+        if (! $shouldBeIndexed) {
             return 'noindex,nofollow';
         }
 

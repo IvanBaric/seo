@@ -6,10 +6,10 @@
   "require": {
     "php": "^8.2",
     "ivanbaric/corexis": "^0.1 || ^1.0",
-    "illuminate/support": "^11.0 || ^12.0",
-    "illuminate/database": "^11.0 || ^12.0",
-    "illuminate/console": "^11.0 || ^12.0",
-    "illuminate/contracts": "^11.0 || ^12.0"
+    "illuminate/support": "^11.0 || ^12.0 || ^13.0",
+    "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+    "illuminate/console": "^11.0 || ^12.0 || ^13.0",
+    "illuminate/contracts": "^11.0 || ^12.0 || ^13.0"
   },
   "autoload": {
     "psr-4": {

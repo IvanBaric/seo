@@ -1,6 +1,6 @@
 # IvanBaric SEO
 
-Reusable SEO infrastructure for Laravel 11 and Laravel 12 applications.
+Reusable SEO infrastructure for Laravel 11, Laravel 12 and Laravel 13 applications.
 
 The package is backend-first, model-agnostic, config-driven, fallback-driven and context-aware through `ivanbaric/corexis`.
 
@@ -16,12 +16,14 @@ It supports title, description, keywords, canonical URLs, robots directives, Ope
 
 ## What This Package Is Not
 
-This is not an admin UI, CMS, Livewire component package, media package, analytics package or text optimization tool. It does not know about `Post`, `Page`, `Team`, `User`, Velora, team ids, app locales or authentication.
+This is not a CMS, media package, analytics package or text optimization tool. It does not know about `Post`, `Page`, `Team`, `User`, Velora, team ids, app locales or authentication.
+
+The package includes small optional form helpers and a publishable admin-card Blade view, but it does not impose an admin panel or persistence workflow on your application.
 
 ## Requirements
 
 - PHP `^8.2`
-- Laravel components `^11.0 || ^12.0`
+- Laravel components `^11.0 || ^12.0 || ^13.0`
 - `ivanbaric/corexis` `^0.1 || ^1.0`
 
 ## Installation
@@ -86,6 +88,80 @@ $product->updateSeo([
     'robots' => 'index,follow',
 ], locale: 'en');
 ```
+
+## Form Automation
+
+`SeoFormDefaults` resolves a safe SEO form state that you can use from a Livewire component, controller or form object. It keeps repeated rules out of applications:
+
+- auto title from a form field, model defaults or configured fallback attributes
+- auto description from a form field, model defaults or configured fallback attributes
+- canonical URL through the configured URL resolver or an explicit form value
+- robots from an explicit indexed flag or `shouldBeIndexed()`
+- manually edited title and description can be preserved
+
+```php
+use IvanBaric\Seo\Data\SeoFormState;
+use IvanBaric\Seo\Support\SeoFormDefaults;
+
+private function seoState(): SeoFormState
+{
+    return SeoFormDefaults::for($this->product)
+        ->titleFrom($this->title)
+        ->descriptionFrom($this->description)
+        ->manualTitle($this->seo_title, $this->seoTitleManuallyEdited)
+        ->manualDescription($this->seo_description, $this->seoDescriptionManuallyEdited)
+        ->canonicalFrom(route('products.show', $this->product))
+        ->indexed($this->product?->status === 'published')
+        ->titleMaxLength(255)
+        ->descriptionMaxLength(500)
+        ->resolve();
+}
+```
+
+You still decide what "published" means. For most models, implement `shouldBeIndexed()`:
+
+```php
+public function shouldBeIndexed(): bool
+{
+    return $this->status === 'published';
+}
+```
+
+If you do not pass `indexed()`, `SeoFormDefaults` uses `shouldBeIndexed()` when the model has it, otherwise it assumes the record is indexable.
+
+## Admin Card View
+
+The package ships a small optional Flux-based Blade card for common SEO form fields:
+
+```blade
+<x-seo::admin-card />
+```
+
+It binds to these Livewire properties by default:
+
+- `seo_title`
+- `seo_description`
+- `seo_canonical_url`
+- `seo_robots`
+
+Override property names when needed:
+
+```blade
+<x-seo::admin-card
+    title-model="meta.title"
+    description-model="meta.description"
+    canonical-model="meta.canonical_url"
+    robots-model="meta.robots"
+/>
+```
+
+The card is intentionally only a view. Publish it when an application needs different wording or layout:
+
+```bash
+php artisan vendor:publish --tag=seo-views
+```
+
+Because this view uses Flux components, the consuming application must have Flux installed or publish the view and replace the markup with its own UI components.
 
 ## Rendering Meta Tags
 
