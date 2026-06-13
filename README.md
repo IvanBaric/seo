@@ -131,7 +131,7 @@ If you do not pass `indexed()`, `SeoFormDefaults` uses `shouldBeIndexed()` when 
 
 ## Admin Card View
 
-The package ships a small optional Flux-based Blade card for common SEO form fields:
+The package ships a small optional Blade card for common SEO form fields. The packaged view uses `ivanbaric/admin-ui` for the panel shell and Flux for form controls:
 
 ```blade
 <x-seo::admin-card />
@@ -161,7 +161,7 @@ The card is intentionally only a view. Publish it when an application needs diff
 php artisan vendor:publish --tag=seo-views
 ```
 
-Because this view uses Flux components, the consuming application must have Flux installed or publish the view and replace the markup with its own UI components.
+Because this view uses `admin-ui` and Flux components, the consuming application must have those UI packages installed or publish the view and replace the markup with its own UI components.
 
 ## Rendering Meta Tags
 

@@ -5,11 +5,11 @@
     'robotsModel' => 'seo_robots',
 ])
 
-<section {{ $attributes->merge(['class' => 'overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-950/5 dark:bg-zinc-950 dark:ring-white/10']) }}>
-    <header class="border-b border-zinc-100/70 bg-zinc-50 px-5 py-4 dark:border-zinc-800/70 dark:bg-zinc-900/50">
-        <flux:heading size="lg" class="text-[15px] font-semibold leading-6 text-zinc-950 dark:text-white">{{ __('SEO') }}</flux:heading>
-        <p class="mt-0.5 text-[13px] leading-5 text-zinc-500 dark:text-zinc-400">{{ __('Naslov, opis i indeksiranje za tražilice i dijeljenje.') }}</p>
-    </header>
+<x-admin-ui::panel as="section" {{ $attributes }}>
+    <x-admin-ui::panel-header
+        :title="__('SEO')"
+        :description="__('Naslov, opis i indeksiranje za tražilice i dijeljenje.')"
+    />
 
     <div class="grid gap-4 p-5">
         <flux:field>
@@ -81,4 +81,4 @@
             <flux:error name="{{ $robotsModel }}" />
         </flux:field>
     </div>
-</section>
+</x-admin-ui::panel>
