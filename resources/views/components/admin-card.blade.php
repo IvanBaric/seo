@@ -16,15 +16,9 @@
             <flux:label>
                 <span class="inline-flex items-center gap-1.5">
                     <span>{{ __('SEO naslov') }}</span>
-                    <flux:dropdown position="top" align="start">
+                    <flux:tooltip :content="__('Naslov za Google i dijeljenje linka. Ako ga ne mijenjate, prati naziv zapisa.')">
                         <flux:button type="button" variant="ghost" size="xs" icon="information-circle" class="-my-1 size-6 p-0 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" :aria-label="__('Što je SEO naslov?')" />
-                        <flux:popover class="w-72">
-                            <div class="space-y-1.5">
-                                <flux:heading size="sm">{{ __('SEO naslov') }}</flux:heading>
-                                <flux:text class="text-sm leading-5">{{ __('Naslov za Google i dijeljenje linka. Ako ga ne mijenjate, prati naziv zapisa.') }}</flux:text>
-                            </div>
-                        </flux:popover>
-                    </flux:dropdown>
+                    </flux:tooltip>
                 </span>
             </flux:label>
             <flux:input wire:model.live.debounce.300ms="{{ $titleModel }}" />
@@ -35,15 +29,9 @@
             <flux:label>
                 <span class="inline-flex items-center gap-1.5">
                     <span>{{ __('SEO opis') }}</span>
-                    <flux:dropdown position="top" align="start">
+                    <flux:tooltip :content="__('Kratak tekst ispod naslova u pretrazi. Ako ga ne mijenjate, prati opis zapisa.')">
                         <flux:button type="button" variant="ghost" size="xs" icon="information-circle" class="-my-1 size-6 p-0 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" :aria-label="__('Što je SEO opis?')" />
-                        <flux:popover class="w-72">
-                            <div class="space-y-1.5">
-                                <flux:heading size="sm">{{ __('SEO opis') }}</flux:heading>
-                                <flux:text class="text-sm leading-5">{{ __('Kratak tekst ispod naslova u pretrazi. Ako ga ne mijenjate, prati opis zapisa.') }}</flux:text>
-                            </div>
-                        </flux:popover>
-                    </flux:dropdown>
+                    </flux:tooltip>
                 </span>
             </flux:label>
             <flux:textarea wire:model.live.debounce.500ms="{{ $descriptionModel }}" rows="4" />
