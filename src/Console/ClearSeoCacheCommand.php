@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace IvanBaric\Seo\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use IvanBaric\Seo\Actions\RefreshSeoCacheAction;
 
 final class ClearSeoCacheCommand extends Command
 {
@@ -13,12 +13,17 @@ final class ClearSeoCacheCommand extends Command
 
     protected $description = 'Clear SEO package cache entries.';
 
-    public function handle(CacheRepository $cache): int
+    public function handle(RefreshSeoCacheAction $action): int
     {
-        $prefix = (string) config('seo.cache.prefix', 'seo');
-        $cache->forget($prefix.':'.(string) config('seo.sitemap.cache_key', 'sitemap'));
+        $result = $action->handle();
 
-        $this->info('SEO cache cleared.');
+        if ($result->failed()) {
+            $this->error($result->message);
+
+            return self::FAILURE;
+        }
+
+        $this->info($result->message);
 
         return self::SUCCESS;
     }

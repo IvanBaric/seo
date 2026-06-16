@@ -23,8 +23,8 @@ final class SeoMetaRepository
         return $metaClass::query()
             ->where('seoable_type', $model->getMorphClass())
             ->where('seoable_id', $model->getKey())
-            ->where('tenant_type', $this->context->currentTenantType())
-            ->where('tenant_id', $this->context->currentTenantId())
+            ->where($this->tenantTypeColumn(), $this->context->currentTenantType())
+            ->where($this->tenantIdColumn(), $this->context->currentTenantId())
             ->where('locale', $localeKey);
     }
 
@@ -49,9 +49,9 @@ final class SeoMetaRepository
 
         $meta = new $metaClass([
             'unique_key' => SeoUniqueKey::make($model, $this->context, $locale),
-            'tenant_type' => $this->context->currentTenantType(),
-            'tenant_id' => $this->context->currentTenantId(),
-            'tenant_uuid' => $this->context->currentTenantUuid(),
+            $this->tenantTypeColumn() => $this->context->currentTenantType(),
+            $this->tenantIdColumn() => $this->context->currentTenantId(),
+            $this->tenantUuidColumn() => $this->context->currentTenantUuid(),
             'seoable_type' => $model->getMorphClass(),
             'seoable_id' => $model->getKey(),
             'seoable_uuid' => $this->modelUuid($model),
@@ -86,5 +86,20 @@ final class SeoMetaRepository
         }
 
         return null;
+    }
+
+    private function tenantTypeColumn(): string
+    {
+        return (string) config('seo.tenant.type_column', 'tenant_type');
+    }
+
+    private function tenantIdColumn(): string
+    {
+        return (string) config('seo.tenant.id_column', 'team_id');
+    }
+
+    private function tenantUuidColumn(): string
+    {
+        return (string) config('seo.tenant.uuid_column', 'tenant_uuid');
     }
 }

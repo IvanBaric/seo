@@ -89,6 +89,44 @@ $product->updateSeo([
 ], locale: 'en');
 ```
 
+New code that needs operation outcomes should call the Action layer directly:
+
+```php
+use IvanBaric\Seo\Actions\UpdateSeoMetaAction;
+
+$result = app(UpdateSeoMetaAction::class)->handle(
+    model: $product,
+    data: ['title' => 'Manual SEO title'],
+    locale: 'en',
+);
+```
+
+`updateSeo()` remains available as a backward-compatible model helper and delegates to `UpdateSeoMetaAction` internally.
+
+## Architecture
+
+SEO follows the shared IvanBaric write flow for state-changing operations:
+
+```text
+Component/Controller/Command -> Action -> Corexis ActionResult -> Domain Event -> Listener
+```
+
+Available Actions:
+
+- `UpdateSeoMetaAction`
+- `DeleteSeoMetaAction`
+- `GenerateSitemapAction`
+- `RefreshSeoCacheAction`
+
+Available domain events:
+
+- `SeoMetaUpdated`
+- `SeoMetaDeleted`
+- `SitemapGenerated`
+- `SeoCacheRefreshed`
+
+The package remains model-agnostic. Actions operate on generic Eloquent models or package services and do not know about pages, posts, products, teams, billing, gallery, audit, or application-specific content workflows.
+
 ## Form Automation
 
 `SeoFormDefaults` resolves a safe SEO form state that you can use from a Livewire component, controller or form object. It keeps repeated rules out of applications:
@@ -193,7 +231,7 @@ Resolution order:
 
 ## Tenant Awareness
 
-When Corexis tenancy is enabled, `SeoMetaRepository` stores `tenant_type`, `tenant_id` and `tenant_uuid` from `TenantResolver`. If tenancy is disabled, those fields remain `null`.
+When Corexis tenancy is enabled, `SeoMetaRepository` stores `tenant_type`, `team_id` and `tenant_uuid` from `TenantResolver` by default. If tenancy is disabled, those fields remain `null`. Existing applications can set `seo.tenant.id_column` / `SEO_TENANT_ID_COLUMN` to keep a legacy column name.
 
 ## Locale Awareness
 

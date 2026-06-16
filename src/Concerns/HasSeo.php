@@ -6,7 +6,9 @@ namespace IvanBaric\Seo\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use RuntimeException;
 use IvanBaric\Seo\Data\SeoData;
+use IvanBaric\Seo\Actions\UpdateSeoMetaAction;
 use IvanBaric\Seo\Models\SeoMeta;
 use IvanBaric\Seo\Services\SeoManager;
 use IvanBaric\Seo\Services\SeoMetaRepository;
@@ -38,7 +40,17 @@ trait HasSeo
      */
     public function updateSeo(array $data, ?string $locale = null): SeoMeta
     {
-        return app(SeoMetaRepository::class)->update($this, $data, $locale);
+        $result = app(UpdateSeoMetaAction::class)->handle($this, $data, $locale);
+
+        if ($result->failed()) {
+            throw new RuntimeException($result->message);
+        }
+
+        if (! $result->data instanceof SeoMeta) {
+            throw new RuntimeException('SEO meta action did not return a SeoMeta instance.');
+        }
+
+        return $result->data;
     }
 
     public function seoData(?string $locale = null): SeoData

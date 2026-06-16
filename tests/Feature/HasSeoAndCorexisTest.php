@@ -23,7 +23,7 @@ final class HasSeoAndCorexisTest extends TestCase
 
         $this->assertSame('Manual title', $model->seoMeta()?->title);
         $this->assertSame('team', $meta->tenant_type);
-        $this->assertSame('10', (string) $meta->tenant_id);
+        $this->assertSame('10', (string) $meta->team_id);
         $this->assertSame('hr', $meta->locale);
         $this->assertCount(1, $model->seoMetas()->get());
     }

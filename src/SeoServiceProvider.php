@@ -45,6 +45,8 @@ final class SeoServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'seo');
+
         $this->publishes([
             __DIR__.'/../config/seo.php' => config_path('seo.php'),
         ], 'seo-config');
@@ -56,6 +58,10 @@ final class SeoServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/views' => resource_path('views/vendor/seo'),
         ], 'seo-views');
+
+        $this->publishes([
+            __DIR__.'/../lang' => lang_path('vendor/seo'),
+        ], 'seo-translations');
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'seo');
 

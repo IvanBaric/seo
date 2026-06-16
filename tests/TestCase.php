@@ -71,7 +71,7 @@ abstract class TestCase extends Orchestra
             $table->uuid('uuid')->nullable()->unique();
             $table->string('unique_key', 64)->unique();
             $table->string('tenant_type')->nullable()->index();
-            $table->string('tenant_id')->nullable()->index();
+            $table->string('team_id')->nullable()->index();
             $table->uuid('tenant_uuid')->nullable()->index();
             $table->string('seoable_type')->index();
             $table->unsignedBigInteger('seoable_id')->index();
@@ -95,7 +95,7 @@ abstract class TestCase extends Orchestra
             $table->timestamps();
 
             $table->index(['seoable_type', 'seoable_id']);
-            $table->index(['tenant_type', 'tenant_id']);
+            $table->index(['tenant_type', 'team_id']);
             $table->index('updated_at');
         });
     }

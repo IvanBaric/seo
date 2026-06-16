@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace IvanBaric\Seo\Console;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
-use IvanBaric\Seo\Services\SitemapGenerator;
+use IvanBaric\Seo\Actions\GenerateSitemapAction;
 
 final class GenerateSitemapCommand extends Command
 {
@@ -14,25 +13,30 @@ final class GenerateSitemapCommand extends Command
 
     protected $description = 'Generate the SEO sitemap XML.';
 
-    public function handle(SitemapGenerator $generator): int
+    public function handle(GenerateSitemapAction $action): int
     {
-        $xml = $generator->generate(
+        $result = $action->handle(
             fresh: (bool) $this->option('fresh'),
             cache: ! (bool) $this->option('no-cache'),
+            writePath: is_string($this->option('write')) ? (string) $this->option('write') : null,
         );
 
-        $write = $this->option('write');
+        if ($result->failed()) {
+            $this->error($result->message);
+
+            return self::FAILURE;
+        }
+
+        $data = is_array($result->data) ? $result->data : [];
+        $write = $data['written_to'] ?? null;
 
         if (is_string($write) && $write !== '') {
-            $path = base_path($write);
-            File::ensureDirectoryExists(dirname($path));
-            File::put($path, $xml);
             $this->info("Sitemap written to [{$write}].");
 
             return self::SUCCESS;
         }
 
-        $this->line($xml);
+        $this->line((string) ($data['xml'] ?? ''));
 
         return self::SUCCESS;
     }

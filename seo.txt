@@ -320,7 +320,7 @@ id
 uuid nullable unique
 unique_key string(64) unique
 tenant_type nullable index
-tenant_id nullable index
+team_id nullable index
 tenant_uuid nullable index
 seoable_type index
 seoable_id index
@@ -348,7 +348,7 @@ Indeksi:
 - unique_key unique
 - seoable_type + seoable_id
 - seoable_uuid
-- tenant_type + tenant_id
+- tenant_type + team_id
 - tenant_uuid
 - locale
 - updated_at
@@ -358,7 +358,7 @@ unique_key je obavezan jer nullable tenant/locale polja nisu pouzdana za composi
 SeoUniqueKey generira hash iz:
 
 tenant_type ili none
-tenant_id ili none
+team_id ili none
 seoable_type
 seoable_id
 locale ili __default

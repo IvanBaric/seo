@@ -32,6 +32,12 @@ return [
         'source' => ['mode' => 'inherit'],
     ],
 
+    'tenant' => [
+        'type_column' => 'tenant_type',
+        'id_column' => env('SEO_TENANT_ID_COLUMN', env('COREXIS_TENANT_ID_COLUMN', 'team_id')),
+        'uuid_column' => 'tenant_uuid',
+    ],
+
     'locale' => [
         'enabled' => true,
         'store_default_locale' => false,
@@ -131,5 +137,22 @@ return [
     'routes' => [
         'enabled' => true,
         'middleware' => ['web'],
+    ],
+
+    'permissions' => [
+        [
+            'name' => 'seo',
+            'slug' => 'seo',
+            'label' => 'seo::permissions.group',
+            'description' => 'seo::permissions.description',
+            'icon' => 'search',
+            'sort_order' => 80,
+            'items' => [
+                ['name' => 'View', 'slug' => 'view', 'code' => 'seo.view', 'label' => 'seo::permissions.view', 'sort_order' => 10],
+                ['name' => 'Update metadata', 'slug' => 'meta_update', 'code' => 'seo.meta.update', 'label' => 'seo::permissions.meta_update', 'sort_order' => 20],
+                ['name' => 'Delete metadata', 'slug' => 'meta_delete', 'code' => 'seo.meta.delete', 'label' => 'seo::permissions.meta_delete', 'sort_order' => 30],
+                ['name' => 'Generate sitemap', 'slug' => 'sitemap_generate', 'code' => 'seo.sitemap.generate', 'label' => 'seo::permissions.sitemap_generate', 'sort_order' => 40],
+            ],
+        ],
     ],
 ];
