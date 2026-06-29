@@ -6,6 +6,7 @@ namespace IvanBaric\Seo\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use IvanBaric\Corexis\CorexisServiceProvider;
 use IvanBaric\Seo\SeoServiceProvider;
 use IvanBaric\Seo\Tests\Fixtures\Models\SeoFixtureModel;
@@ -47,6 +48,9 @@ abstract class TestCase extends Orchestra
     protected function setUp(): void
     {
         parent::setUp();
+
+        URL::forceRootUrl('https://example.test');
+        URL::forceScheme('https');
 
         SeoFixtureModel::clearBootedModels();
         $this->createSchema();

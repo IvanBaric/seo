@@ -6,6 +6,7 @@ namespace IvanBaric\Seo\Tests\Feature;
 
 use Illuminate\Support\Facades\Route;
 use IvanBaric\Seo\Services\SitemapGenerator;
+use IvanBaric\Seo\Tests\Fixtures\FixtureSitemapSource;
 use IvanBaric\Seo\Tests\Fixtures\Models\SeoFixtureModel;
 use IvanBaric\Seo\Tests\TestCase;
 
@@ -42,6 +43,17 @@ final class RendererSitemapAndCommandsTest extends TestCase
         $this->assertStringNotContainsString('Hidden', $xml);
 
         $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml');
+    }
+
+    public function test_sitemap_generator_includes_configured_sources(): void
+    {
+        config()->set('seo.sitemap.sources', [
+            FixtureSitemapSource::class,
+        ]);
+
+        $xml = app(SitemapGenerator::class)->generate(fresh: true, cache: false);
+
+        $this->assertStringContainsString('https://example.test/custom-source', $xml);
     }
 
     public function test_commands_are_registered(): void

@@ -172,7 +172,7 @@ config/
   seo.php
 
 database/migrations/
-  create_seo_meta_table.php.stub
+  2026_06_13_151646_create_seo_meta_table.php
 
 routes/
   web.php
@@ -307,9 +307,9 @@ Testovi moraju dokazati da se config koristi.
 5. MIGRACIJA
 ────────────────────────────────────────
 
-Napravi publishable migration stub:
+Package koristi učitanu i publishable migraciju:
 
-database/migrations/create_seo_meta_table.php.stub
+database/migrations/2026_06_13_151646_create_seo_meta_table.php
 
 Tablica default:
 seo_meta
@@ -950,7 +950,7 @@ Zadatak je gotov tek kad:
 3. Package ovisi o Corexisu.
 4. SeoServiceProvider radi.
 5. config/seo.php postoji i koristi se.
-6. Migration stub za seo_meta postoji.
+6. Migracija za seo_meta postoji.
 7. SeoMeta model radi.
 8. HasSeo trait radi na bilo kojem Eloquent modelu.
 9. SeoContext koristi Corexis TenantResolver i LocaleResolver.
@@ -983,7 +983,7 @@ FAZA 1:
 - composer.json
 - SeoServiceProvider
 - config/seo.php
-- migration stub
+- migration
 - SeoMeta model
 
 FAZA 2:

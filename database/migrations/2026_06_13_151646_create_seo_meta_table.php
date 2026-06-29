@@ -12,13 +12,18 @@ return new class extends Migration
     {
         $connection = config('seo.table.connection');
         $tableName = config('seo.table.name', 'seo_meta');
+        $tenantIdColumn = (string) config('seo.tenant.id_column', 'team_id');
 
-        Schema::connection($connection)->create($tableName, function (Blueprint $table): void {
+        if (Schema::connection($connection)->hasTable($tableName)) {
+            return;
+        }
+
+        Schema::connection($connection)->create($tableName, function (Blueprint $table) use ($tenantIdColumn): void {
             $table->id();
             $table->uuid('uuid')->nullable()->unique();
             $table->string('unique_key', 64)->unique();
             $table->string('tenant_type')->nullable()->index();
-            $table->string('team_id')->nullable()->index();
+            $table->string($tenantIdColumn)->nullable()->index();
             $table->uuid('tenant_uuid')->nullable()->index();
             $table->string('seoable_type')->index();
             $table->unsignedBigInteger('seoable_id')->index();
@@ -42,7 +47,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['seoable_type', 'seoable_id']);
-            $table->index(['tenant_type', 'team_id']);
+            $table->index(['tenant_type', $tenantIdColumn]);
             $table->index('updated_at');
         });
     }

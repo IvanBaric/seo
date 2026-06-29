@@ -119,6 +119,7 @@ return [
         'route_enabled' => true,
         'route_path' => 'sitemap.xml',
         'models' => [],
+        'sources' => [],
         'chunk_size' => 500,
         'cache_enabled' => true,
         'cache_key' => 'sitemap',

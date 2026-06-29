@@ -7,7 +7,10 @@ namespace IvanBaric\Seo\Services;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use IvanBaric\Seo\Contracts\SeoUrlResolver;
+use IvanBaric\Seo\Contracts\SitemapSource;
+use IvanBaric\Seo\Data\SitemapUrlData;
 use IvanBaric\Seo\Support\SeoValueNormalizer;
 
 final class SitemapGenerator
@@ -64,9 +67,41 @@ final class SitemapGenerator
                         continue;
                     }
 
-                    $urls[] = $this->urlNode($model, $url);
+                    $urls[$url] = $this->urlNodeFromModel($model, $url);
                 }
             });
+        }
+
+        foreach ($this->sourceEntries() as $entry) {
+            if ($entry instanceof Model) {
+                if (method_exists($entry, 'shouldBeIndexed') && ! $entry->shouldBeIndexed()) {
+                    continue;
+                }
+
+                $url = $this->normalizer->url($this->urlResolver->resolve($entry));
+
+                if ($url === null) {
+                    continue;
+                }
+
+                $urls[$url] = $this->urlNodeFromModel($entry, $url);
+
+                continue;
+            }
+
+            if ($entry instanceof SitemapUrlData) {
+                $url = $this->normalizer->url($entry->url);
+
+                if ($url === null) {
+                    continue;
+                }
+
+                $urls[$url] = $this->urlNodeFromData(new SitemapUrlData(
+                    url: $url,
+                    lastmod: $entry->lastmod,
+                    alternates: $entry->alternates,
+                ));
+            }
         }
 
         return '<?xml version="1.0" encoding="UTF-8"?>'.PHP_EOL
@@ -75,7 +110,7 @@ final class SitemapGenerator
             .'</urlset>';
     }
 
-    private function urlNode(Model $model, string $url): string
+    private function urlNodeFromModel(Model $model, string $url): string
     {
         $lines = ['  <url>', '    <loc>'.$this->e($url).'</loc>'];
 
@@ -90,6 +125,44 @@ final class SitemapGenerator
         $lines[] = '  </url>';
 
         return implode(PHP_EOL, $lines);
+    }
+
+    private function urlNodeFromData(SitemapUrlData $data): string
+    {
+        $lines = ['  <url>', '    <loc>'.$this->e($data->url).'</loc>'];
+
+        if ($data->lastmod) {
+            $lines[] = '    <lastmod>'.$this->e($data->lastmod->format(DATE_ATOM)).'</lastmod>';
+        }
+
+        foreach ($data->alternates as $alternate) {
+            $lines[] = '    <xhtml:link rel="alternate" hreflang="'.$this->e($alternate->locale).'" href="'.$this->e($alternate->url).'" />';
+        }
+
+        $lines[] = '  </url>';
+
+        return implode(PHP_EOL, $lines);
+    }
+
+    /**
+     * @return Collection<int, Model|SitemapUrlData>
+     */
+    private function sourceEntries(): Collection
+    {
+        return collect((array) config('seo.sitemap.sources', []))
+            ->flatMap(function (mixed $source): iterable {
+                if (is_string($source) && class_exists($source)) {
+                    $source = app($source);
+                }
+
+                if (! $source instanceof SitemapSource) {
+                    return [];
+                }
+
+                return $source->sitemapModels();
+            })
+            ->filter(fn (mixed $entry): bool => $entry instanceof Model || $entry instanceof SitemapUrlData)
+            ->values();
     }
 
     private function cacheKey(): string

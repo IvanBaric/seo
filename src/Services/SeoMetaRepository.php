@@ -69,7 +69,14 @@ final class SeoMetaRepository
      */
     public function update(Model $model, array $data, ?string $locale = null): SeoMeta
     {
-        $meta = $this->getOrCreate($model, $locale);
+        $meta = $this->queryFor($model, $locale)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $meta instanceof SeoMeta) {
+            $meta = $this->getOrCreate($model, $locale);
+        }
+
         $meta->fill($data);
         $meta->unique_key = SeoUniqueKey::make($model, $this->context, $locale);
         $meta->save();

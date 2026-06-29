@@ -283,12 +283,97 @@ Configure models:
 ],
 ```
 
+Configured models are included only when a URL can be resolved. If the model
+has a `published()` scope, the sitemap query uses it. If the model implements
+`shouldBeIndexed()`, hidden records are skipped at generation time.
+
+For CMS applications, prefer custom sitemap sources when public visibility is
+application-specific. A source can return Eloquent models or ready-made
+`SitemapUrlData` records:
+
+```php
+use Illuminate\Support\Collection;
+use IvanBaric\Seo\Contracts\SitemapSource;
+use IvanBaric\Seo\Data\SitemapUrlData;
+
+final class PublicPageSitemapSource implements SitemapSource
+{
+    public function sitemapModels(): Collection
+    {
+        return Page::query()
+            ->where('is_active', true)
+            ->where('team_is_public', true)
+            ->get();
+    }
+}
+```
+
+```php
+'sitemap' => [
+    'sources' => [
+        PublicPageSitemapSource::class,
+    ],
+],
+```
+
+The source owns the business rule. For example:
+
+- pages that only have `is_active` should include only `is_active = true`
+- posts with scheduled publishing should include only `status = published` and `published_at <= now()`
+- products should include only visible public products
+- galleries should include only public galleries with at least one public media item
+- taxonomy URLs should be included only when they have at least one public record
+
+This keeps the SEO package reusable while each application decides what "public"
+means.
+
 Generate:
 
 ```bash
 php artisan seo:generate-sitemap --fresh
 php artisan seo:generate-sitemap --write=public/sitemap.xml
 ```
+
+For dynamic sites, expose `/sitemap.xml` through the package route and keep
+cache enabled. Clear SEO cache when content visibility or URLs change:
+
+```bash
+php artisan seo:clear-cache
+```
+
+Typical listeners clear this cache after page, post, product, gallery and
+taxonomy create/update/delete/publish/unpublish events.
+
+## Robots.txt
+
+The SEO package does not force a `robots.txt` file because the right answer is
+application-specific. A recommended production policy for admin-backed public
+sites is:
+
+```txt
+User-agent: *
+Allow: /
+
+Disallow: /app/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /email/verify
+Disallow: /livewire/
+
+Sitemap: https://example.com/sitemap.xml
+```
+
+For local, staging and preview environments, prefer:
+
+```txt
+User-agent: *
+Disallow: /
+```
+
+Applications should generate the sitemap URL from their configured public base
+URL, not hardcode a development domain.
 
 ## Security Notes
 
@@ -347,6 +432,7 @@ Main config keys:
 - `sitemap.route_enabled`
 - `sitemap.route_path`
 - `sitemap.models`
+- `sitemap.sources`
 - `renderer.class`
 - `cache.enabled`
 - `cache.prefix`

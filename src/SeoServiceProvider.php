@@ -46,13 +46,14 @@ final class SeoServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'seo');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
         $this->publishes([
             __DIR__.'/../config/seo.php' => config_path('seo.php'),
         ], 'seo-config');
 
-        $this->publishes([
-            __DIR__.'/../database/migrations/create_seo_meta_table.php.stub' => database_path('migrations/'.date('Y_m_d_His').'_create_seo_meta_table.php'),
+        $this->publishesMigrations([
+            __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'seo-migrations');
 
         $this->publishes([

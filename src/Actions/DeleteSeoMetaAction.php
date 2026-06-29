@@ -40,7 +40,13 @@ final readonly class DeleteSeoMetaAction
         $storedLocale = is_string($meta->locale) ? $meta->locale : null;
 
         DB::transaction(static function () use ($meta): void {
-            $meta->delete();
+            /** @var SeoMeta $lockedMeta */
+            $lockedMeta = SeoMeta::query()
+                ->whereKey($meta->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedMeta->delete();
         });
 
         event(new SeoMetaDeleted($metaId, $seoableType, $seoableId, $storedLocale));
