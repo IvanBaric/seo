@@ -9,7 +9,7 @@ use IvanBaric\Seo\Actions\GenerateSitemapAction;
 
 final class GenerateSitemapCommand extends Command
 {
-    protected $signature = 'seo:generate-sitemap {--fresh : Rebuild sitemap instead of using cache} {--write= : Write XML to a path, for example public/sitemap.xml} {--no-cache : Do not read or write sitemap cache}';
+    protected $signature = 'seo:generate-sitemap {--fresh : Rebuild sitemap instead of using cache} {--write= : Write XML below the configured sitemap write directory, for example public/sitemap.xml} {--no-cache : Do not read or write sitemap cache}';
 
     protected $description = 'Generate the SEO sitemap XML.';
 

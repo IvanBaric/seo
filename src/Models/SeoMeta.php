@@ -6,33 +6,54 @@ namespace IvanBaric\Seo\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Str;
+use IvanBaric\Corexis\Concerns\BelongsToTenant;
+use IvanBaric\Corexis\Concerns\HasUuid;
+use IvanBaric\Seo\Support\SeoModels;
 use IvanBaric\Seo\Support\SeoRobots;
 
+/**
+ * @property int $id
+ * @property string $uuid
+ * @property string $unique_key
+ * @property int|string|null $team_id
+ * @property string $seoable_type
+ * @property int|string $seoable_id
+ * @property string $locale
+ * @property string|null $title
+ * @property string|null $description
+ * @property array<int, string>|null $keywords
+ * @property string|null $canonical_url
+ * @property string|null $robots
+ * @property string|null $og_title
+ * @property string|null $og_description
+ * @property string|null $og_image
+ * @property string|null $og_type
+ * @property string|null $twitter_title
+ * @property string|null $twitter_description
+ * @property string|null $twitter_image
+ * @property string|null $twitter_card
+ * @property array<string, mixed>|null $schema
+ * @property array<string, mixed>|null $metadata
+ */
 class SeoMeta extends Model
 {
-    protected $guarded = [];
+    use BelongsToTenant;
+    use HasUuid;
 
-    protected $casts = [
-        'keywords' => 'array',
-        'schema' => 'array',
-        'metadata' => 'array',
-    ];
+    protected $guarded = ['id', 'uuid'];
 
-    protected static function booted(): void
+    protected function casts(): array
     {
-        static::creating(function (SeoMeta $meta): void {
-            $column = (string) config('seo.uuid.column', 'uuid');
-
-            if ((bool) config('seo.uuid.enabled', true) && empty($meta->{$column})) {
-                $meta->{$column} = (string) Str::uuid();
-            }
-        });
+        return [
+            'keywords' => 'array',
+            'schema' => 'array',
+            'metadata' => 'array',
+        ];
     }
 
     public function getTable(): string
     {
-        return (string) config('seo.table.name', parent::getTable());
+        return SeoModels::table();
     }
 
     public function getConnectionName(): ?string
@@ -40,6 +61,7 @@ class SeoMeta extends Model
         return config('seo.table.connection') ?: parent::getConnectionName();
     }
 
+    /** @return MorphTo<Model, $this> */
     public function seoable(): MorphTo
     {
         return $this->morphTo();

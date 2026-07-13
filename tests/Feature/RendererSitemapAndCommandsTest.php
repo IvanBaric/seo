@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace IvanBaric\Seo\Tests\Feature;
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+use IvanBaric\Corexis\Contracts\TenantResolver;
+use IvanBaric\Seo\Actions\GenerateSitemapAction;
 use IvanBaric\Seo\Services\SitemapGenerator;
 use IvanBaric\Seo\Tests\Fixtures\FixtureSitemapSource;
 use IvanBaric\Seo\Tests\Fixtures\Models\SeoFixtureModel;
+use IvanBaric\Seo\Tests\Fixtures\Resolvers\MutableTenantResolver;
 use IvanBaric\Seo\Tests\TestCase;
 
 final class RendererSitemapAndCommandsTest extends TestCase
@@ -36,10 +40,12 @@ final class RendererSitemapAndCommandsTest extends TestCase
 
         $model = SeoFixtureModel::query()->create(['title' => 'Public']);
         SeoFixtureModel::query()->create(['title' => 'Hidden', 'indexed' => false]);
+        $unpublished = SeoFixtureModel::query()->create(['title' => 'Unpublished', 'published' => false]);
 
         $xml = app(SitemapGenerator::class)->generate(fresh: true, cache: false);
 
-        $this->assertStringContainsString('https://example.test/fixtures/'.$model->id, $xml);
+        $this->assertStringContainsString('https://example.test/fixtures/'.$model->getKey(), $xml);
+        $this->assertStringNotContainsString('https://example.test/fixtures/'.$unpublished->getKey(), $xml);
         $this->assertStringNotContainsString('Hidden', $xml);
 
         $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml');
@@ -58,8 +64,53 @@ final class RendererSitemapAndCommandsTest extends TestCase
 
     public function test_commands_are_registered(): void
     {
-        $this->artisan('seo:clear-cache')->assertExitCode(0);
-        $this->artisan('seo:generate-sitemap', ['--fresh' => true, '--no-cache' => true])->assertExitCode(0);
-        $this->artisan('seo:install')->assertExitCode(0);
+        $this->assertSame(0, Artisan::call('seo:clear-cache'));
+        $this->assertSame(0, Artisan::call('seo:generate-sitemap', ['--fresh' => true, '--no-cache' => true]));
+        $this->assertSame(0, Artisan::call('seo:install'));
+    }
+
+    public function test_sitemap_cache_key_is_isolated_by_tenant(): void
+    {
+        $this->app->bind(TenantResolver::class, MutableTenantResolver::class);
+        $generator = app(SitemapGenerator::class);
+
+        MutableTenantResolver::$tenantId = 10;
+        $tenantTenKey = $generator->cacheKey();
+
+        MutableTenantResolver::$tenantId = 20;
+        $tenantTwentyKey = $generator->cacheKey();
+
+        $this->assertNotSame($tenantTenKey, $tenantTwentyKey);
+    }
+
+    public function test_cached_sitemap_content_is_not_shared_between_tenants(): void
+    {
+        Route::get('/fixtures/{seo_fixture_model}', fn () => 'ok')->name('fixtures.show');
+        $this->app->bind(TenantResolver::class, MutableTenantResolver::class);
+        $generator = app(SitemapGenerator::class);
+
+        MutableTenantResolver::$tenantId = 10;
+        $tenantTen = SeoFixtureModel::query()->create(['title' => 'Tenant 10']);
+        $tenantTenXml = $generator->generate(fresh: false, cache: true);
+
+        MutableTenantResolver::$tenantId = 20;
+        $tenantTwenty = SeoFixtureModel::query()->create(['title' => 'Tenant 20']);
+        $tenantTwentyXml = $generator->generate(fresh: false, cache: true);
+
+        $this->assertStringContainsString('/fixtures/'.$tenantTen->getKey(), $tenantTenXml);
+        $this->assertStringNotContainsString('/fixtures/'.$tenantTen->getKey(), $tenantTwentyXml);
+        $this->assertStringContainsString('/fixtures/'.$tenantTwenty->getKey(), $tenantTwentyXml);
+    }
+
+    public function test_sitemap_cannot_be_written_outside_configured_directory(): void
+    {
+        $result = app(GenerateSitemapAction::class)->handle(
+            fresh: true,
+            cache: false,
+            writePath: '../outside.xml',
+        );
+
+        $this->assertTrue($result->failed());
+        $this->assertSame('invalid_sitemap_write_path', $result->code);
     }
 }

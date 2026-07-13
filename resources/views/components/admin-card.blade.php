@@ -60,7 +60,7 @@
                     </flux:tooltip>
                 </span>
             </flux:label>
-            <flux:select wire:model="{{ $robotsModel }}" disabled>
+            <flux:select wire:model="{{ $robotsModel }}" variant="listbox" disabled>
                 <flux:select.option value="">{{ __('Automatski') }}</flux:select.option>
                 <flux:select.option value="index,follow">{{ __('Index, follow') }}</flux:select.option>
                 <flux:select.option value="noindex,follow">{{ __('Noindex, follow') }}</flux:select.option>

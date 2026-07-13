@@ -14,6 +14,7 @@ use IvanBaric\Seo\Contracts\SeoSchemaBuilder;
 use IvanBaric\Seo\Contracts\SeoUrlResolver;
 use IvanBaric\Seo\Services\SeoManager;
 use IvanBaric\Seo\Services\SeoMetaRepository;
+use IvanBaric\Seo\Support\SeoConfigResolver;
 
 final class SeoServiceProvider extends ServiceProvider
 {
@@ -25,19 +26,19 @@ final class SeoServiceProvider extends ServiceProvider
         $this->app->singleton(SeoManager::class);
 
         $this->app->bind(SeoRenderer::class, fn ($app): SeoRenderer => $app->make(
-            $app['config']->get('seo.renderer.class')
+            SeoConfigResolver::renderer()
         ));
 
         $this->app->bind(SeoUrlResolver::class, fn ($app): SeoUrlResolver => $app->make(
-            $app['config']->get('seo.canonical.resolver')
+            SeoConfigResolver::urlResolver()
         ));
 
         $this->app->bind(SeoImageResolver::class, fn ($app): SeoImageResolver => $app->make(
-            $app['config']->get('seo.images.resolver')
+            SeoConfigResolver::imageResolver()
         ));
 
         $this->app->bind(SeoSchemaBuilder::class, fn ($app): SeoSchemaBuilder => $app->make(
-            $app['config']->get('seo.schema.default_builder')
+            SeoConfigResolver::schemaBuilder()
         ));
 
         $this->app->alias(SeoManager::class, 'seo');

@@ -13,17 +13,17 @@ final class FakeLocaleResolver implements LocaleResolver
         return true;
     }
 
-    public function current(): ?string
+    public function current(): string
     {
         return 'hr';
     }
 
-    public function default(): ?string
+    public function default(): string
     {
         return 'en';
     }
 
-    public function fallback(): ?string
+    public function fallback(): string
     {
         return 'en';
     }

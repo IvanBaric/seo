@@ -6,8 +6,10 @@ namespace IvanBaric\Seo\Tests\Fixtures\Resolvers;
 
 use IvanBaric\Corexis\Contracts\TenantResolver;
 
-final class FakeTenantResolver implements TenantResolver
+final class MutableTenantResolver implements TenantResolver
 {
+    public static int|string|null $tenantId = 10;
+
     public function enabled(): bool
     {
         return true;
@@ -15,17 +17,17 @@ final class FakeTenantResolver implements TenantResolver
 
     public function current(): mixed
     {
-        return ['id' => 10];
+        return self::$tenantId === null ? null : ['id' => self::$tenantId];
     }
 
-    public function id(): int
+    public function id(): int|string|null
     {
-        return 10;
+        return self::$tenantId;
     }
 
-    public function uuid(): string
+    public function uuid(): ?string
     {
-        return '9f8d8576-5b13-4f4f-8a18-b1d6d0aa2e10';
+        return null;
     }
 
     public function type(): string

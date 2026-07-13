@@ -8,23 +8,27 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use IvanBaric\Seo\Models\SeoMeta;
 use IvanBaric\Seo\Support\SeoContext;
+use IvanBaric\Seo\Support\SeoModels;
+use IvanBaric\Seo\Support\SeoSubjectResolver;
 use IvanBaric\Seo\Support\SeoUniqueKey;
+use LogicException;
 
 final class SeoMetaRepository
 {
-    public function __construct(private readonly SeoContext $context) {}
+    public function __construct(
+        private readonly SeoContext $context,
+        private readonly SeoSubjectResolver $subjectResolver,
+    ) {}
 
+    /** @return Builder<SeoMeta> */
     public function queryFor(Model $model, ?string $locale = null): Builder
     {
-        /** @var class-string<SeoMeta> $metaClass */
-        $metaClass = config('seo.models.seo_meta', SeoMeta::class);
+        $metaClass = SeoModels::meta();
         $localeKey = $this->context->localeKey($locale);
 
         return $metaClass::query()
             ->where('seoable_type', $model->getMorphClass())
             ->where('seoable_id', $model->getKey())
-            ->where($this->tenantTypeColumn(), $this->context->currentTenantType())
-            ->where($this->tenantIdColumn(), $this->context->currentTenantId())
             ->where('locale', $localeKey);
     }
 
@@ -38,28 +42,24 @@ final class SeoMetaRepository
 
     public function getOrCreate(Model $model, ?string $locale = null): SeoMeta
     {
-        $meta = $this->findFor($model, $locale);
+        $model = $this->writableSubject($model);
+        $existing = $this->findFor($model, $locale);
 
-        if ($meta instanceof SeoMeta) {
-            return $meta;
+        if ($existing instanceof SeoMeta) {
+            return $existing;
         }
 
-        /** @var class-string<SeoMeta> $metaClass */
-        $metaClass = config('seo.models.seo_meta', SeoMeta::class);
+        $metaClass = SeoModels::meta();
+        $uniqueKey = SeoUniqueKey::make($model, $this->context, $locale);
 
-        $meta = new $metaClass([
-            'unique_key' => SeoUniqueKey::make($model, $this->context, $locale),
-            $this->tenantTypeColumn() => $this->context->currentTenantType(),
-            $this->tenantIdColumn() => $this->context->currentTenantId(),
-            $this->tenantUuidColumn() => $this->context->currentTenantUuid(),
+        /** @var SeoMeta $meta */
+        $meta = $metaClass::query()->firstOrCreate([
+            'unique_key' => $uniqueKey,
+        ], [
             'seoable_type' => $model->getMorphClass(),
             'seoable_id' => $model->getKey(),
-            'seoable_uuid' => $this->modelUuid($model),
             'locale' => $this->context->localeKey($locale),
         ]);
-
-        $meta->seoable()->associate($model);
-        $meta->save();
 
         return $meta;
     }
@@ -69,6 +69,7 @@ final class SeoMetaRepository
      */
     public function update(Model $model, array $data, ?string $locale = null): SeoMeta
     {
+        $model = $this->writableSubject($model);
         $meta = $this->queryFor($model, $locale)
             ->lockForUpdate()
             ->first();
@@ -84,29 +85,28 @@ final class SeoMetaRepository
         return $meta;
     }
 
-    private function modelUuid(Model $model): ?string
+    public function delete(Model $model, ?string $locale = null): ?SeoMeta
     {
-        foreach (['uuid', 'ulid'] as $column) {
-            if (isset($model->{$column}) && is_string($model->{$column})) {
-                return $model->{$column};
-            }
+        $model = $this->writableSubject($model);
+        $meta = $this->queryFor($model, $locale)->lockForUpdate()->first();
+
+        if (! $meta instanceof SeoMeta) {
+            return null;
         }
 
-        return null;
+        $meta->delete();
+
+        return $meta;
     }
 
-    private function tenantTypeColumn(): string
+    private function writableSubject(Model $model): Model
     {
-        return (string) config('seo.tenant.type_column', 'tenant_type');
-    }
+        $resolved = $this->subjectResolver->resolve($model);
 
-    private function tenantIdColumn(): string
-    {
-        return (string) config('seo.tenant.id_column', 'team_id');
-    }
+        if (! $resolved instanceof Model) {
+            throw new LogicException('SEO metadata can only be written for an available persisted model.');
+        }
 
-    private function tenantUuidColumn(): string
-    {
-        return (string) config('seo.tenant.uuid_column', 'tenant_uuid');
+        return $resolved;
     }
 }

@@ -4,14 +4,34 @@ declare(strict_types=1);
 
 namespace IvanBaric\Seo\Tests\Fixtures\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use IvanBaric\Corexis\Concerns\BelongsToTenant;
 use IvanBaric\Seo\Concerns\HasSeo;
 
+/**
+ * @property int $id
+ * @property int|string|null $team_id
+ * @property string|null $title
+ * @property string|null $description
+ * @property string|null $image_url
+ * @property bool $indexed
+ * @property bool $published
+ */
 final class SeoFixtureModel extends Model
 {
+    use BelongsToTenant;
     use HasSeo;
 
-    protected $guarded = [];
+    protected $guarded = ['id', 'team_id'];
+
+    /** @param Builder<self> $query */
+    #[Scope]
+    protected function published(Builder $query): void
+    {
+        $query->where('published', true);
+    }
 
     public function getRouteKeyName(): string
     {
@@ -44,11 +64,13 @@ final class SeoFixtureModel extends Model
 
     public function seoImageUrl(): ?string
     {
-        return $this->image_url;
+        $image = $this->getAttribute('image_url');
+
+        return is_string($image) ? $image : null;
     }
 
     public function shouldBeIndexed(): bool
     {
-        return (bool) $this->indexed;
+        return (bool) $this->getAttribute('indexed');
     }
 }

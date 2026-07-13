@@ -5,30 +5,29 @@ declare(strict_types=1);
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use IvanBaric\Seo\Support\SeoConfigResolver;
 
 return new class extends Migration
 {
     public function up(): void
     {
         $connection = config('seo.table.connection');
-        $tableName = config('seo.table.name', 'seo_meta');
-        $tenantIdColumn = (string) config('seo.tenant.id_column', 'team_id');
+        $tableName = SeoConfigResolver::metaTable();
+        $tenantIdColumn = (string) config('corexis.tenancy.id_column', 'team_id');
+        $defaultLocaleKey = (string) config('seo.locale.default_locale_key', '__default');
 
         if (Schema::connection($connection)->hasTable($tableName)) {
             return;
         }
 
-        Schema::connection($connection)->create($tableName, function (Blueprint $table) use ($tenantIdColumn): void {
+        Schema::connection($connection)->create($tableName, function (Blueprint $table) use ($defaultLocaleKey, $tenantIdColumn): void {
             $table->id();
-            $table->uuid('uuid')->nullable()->unique();
+            $table->uuid('uuid')->unique();
             $table->string('unique_key', 64)->unique();
-            $table->string('tenant_type')->nullable()->index();
             $table->string($tenantIdColumn)->nullable()->index();
-            $table->uuid('tenant_uuid')->nullable()->index();
             $table->string('seoable_type')->index();
             $table->unsignedBigInteger('seoable_id')->index();
-            $table->uuid('seoable_uuid')->nullable()->index();
-            $table->string('locale')->nullable()->index();
+            $table->string('locale')->default($defaultLocaleKey)->index();
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->json('keywords')->nullable();
@@ -46,14 +45,13 @@ return new class extends Migration
             $table->json('metadata')->nullable();
             $table->timestamps();
 
-            $table->index(['seoable_type', 'seoable_id']);
-            $table->index(['tenant_type', $tenantIdColumn]);
+            $table->index([$tenantIdColumn, 'seoable_type', 'seoable_id', 'locale']);
             $table->index('updated_at');
         });
     }
 
     public function down(): void
     {
-        Schema::connection(config('seo.table.connection'))->dropIfExists(config('seo.table.name', 'seo_meta'));
+        Schema::connection(config('seo.table.connection'))->dropIfExists(SeoConfigResolver::metaTable());
     }
 };

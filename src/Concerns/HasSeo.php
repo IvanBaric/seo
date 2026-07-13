@@ -6,18 +6,20 @@ namespace IvanBaric\Seo\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use RuntimeException;
-use IvanBaric\Seo\Data\SeoData;
 use IvanBaric\Seo\Actions\UpdateSeoMetaAction;
+use IvanBaric\Seo\Data\SeoData;
 use IvanBaric\Seo\Models\SeoMeta;
 use IvanBaric\Seo\Services\SeoManager;
 use IvanBaric\Seo\Services\SeoMetaRepository;
+use IvanBaric\Seo\Support\SeoModels;
+use RuntimeException;
 
 trait HasSeo
 {
+    /** @return MorphMany<SeoMeta, $this> */
     public function seoMetas(): MorphMany
     {
-        return $this->morphMany(config('seo.models.seo_meta', SeoMeta::class), 'seoable');
+        return $this->morphMany(SeoModels::meta(), 'seoable');
     }
 
     public function seoMeta(?string $locale = null): ?SeoMeta
@@ -25,6 +27,7 @@ trait HasSeo
         return app(SeoMetaRepository::class)->findFor($this, $locale);
     }
 
+    /** @return Builder<SeoMeta> */
     public function seoMetaQuery(?string $locale = null): Builder
     {
         return app(SeoMetaRepository::class)->queryFor($this, $locale);

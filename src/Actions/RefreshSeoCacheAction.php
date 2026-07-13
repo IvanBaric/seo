@@ -7,11 +7,13 @@ namespace IvanBaric\Seo\Actions;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use IvanBaric\Corexis\Data\ActionResult;
 use IvanBaric\Seo\Events\SeoCacheRefreshed;
+use IvanBaric\Seo\Services\SitemapGenerator;
 
 final readonly class RefreshSeoCacheAction
 {
     public function __construct(
         private CacheRepository $cache,
+        private SitemapGenerator $generator,
     ) {}
 
     public function handle(): ActionResult
@@ -20,7 +22,7 @@ final readonly class RefreshSeoCacheAction
             return $result;
         }
 
-        $cacheKey = (string) config('seo.cache.prefix', 'seo').':'.(string) config('seo.sitemap.cache_key', 'sitemap');
+        $cacheKey = $this->generator->cacheKey();
 
         $this->cache->forget($cacheKey);
 

@@ -7,6 +7,7 @@ namespace IvanBaric\Seo\Resolvers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
 use IvanBaric\Seo\Contracts\SeoUrlResolver;
+use IvanBaric\Seo\Support\SeoConfigResolver;
 use IvanBaric\Seo\Support\SeoValueNormalizer;
 
 final class DefaultSeoUrlResolver implements SeoUrlResolver
@@ -46,7 +47,7 @@ final class DefaultSeoUrlResolver implements SeoUrlResolver
 
     private function routeUrl(Model $model, ?string $locale = null): ?string
     {
-        $map = config('seo.sitemap.models.'.get_class($model));
+        $map = SeoConfigResolver::sitemapModelOptions($model);
 
         if (! is_array($map) || ! isset($map['route'])) {
             return null;

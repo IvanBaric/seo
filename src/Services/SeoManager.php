@@ -28,6 +28,7 @@ final class SeoManager
         ]));
     }
 
+    /** @param Model|SeoData|array<string, mixed> $source */
     public function render(Model|SeoData|array $source, ?string $locale = null): HtmlString
     {
         if ($source instanceof Model) {

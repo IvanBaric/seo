@@ -20,24 +20,6 @@ return [
         'connection' => null,
     ],
 
-    'uuid' => [
-        'enabled' => true,
-        'column' => 'uuid',
-    ],
-
-    'corexis' => [
-        'tenant' => ['mode' => 'inherit'],
-        'locale' => ['mode' => 'inherit'],
-        'actor' => ['mode' => 'inherit'],
-        'source' => ['mode' => 'inherit'],
-    ],
-
-    'tenant' => [
-        'type_column' => 'tenant_type',
-        'id_column' => env('SEO_TENANT_ID_COLUMN', env('COREXIS_TENANT_ID_COLUMN', 'team_id')),
-        'uuid_column' => 'tenant_uuid',
-    ],
-
     'locale' => [
         'enabled' => true,
         'store_default_locale' => false,
@@ -123,6 +105,7 @@ return [
         'chunk_size' => 500,
         'cache_enabled' => true,
         'cache_key' => 'sitemap',
+        'write_directory' => 'public',
     ],
 
     'renderer' => [

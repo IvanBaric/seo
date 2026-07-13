@@ -7,23 +7,40 @@ namespace IvanBaric\Seo\Actions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use IvanBaric\Corexis\Data\ActionResult;
+use IvanBaric\Seo\Actions\Concerns\AuthorizesSeoActions;
 use IvanBaric\Seo\Events\SeoMetaDeleted;
 use IvanBaric\Seo\Models\SeoMeta;
 use IvanBaric\Seo\Services\SeoMetaRepository;
+use IvanBaric\Seo\Support\SeoSubjectResolver;
+use Throwable;
 
 final readonly class DeleteSeoMetaAction
 {
+    use AuthorizesSeoActions;
+
     public function __construct(
         private SeoMetaRepository $repository,
+        private SeoSubjectResolver $subjectResolver,
     ) {}
 
     public function handle(Model $model, ?string $locale = null): ActionResult
     {
-        if ($result = corexis_authorization_result('seo.meta.delete', $model)) {
-            return $result;
+        $model = $this->resolveAuthorizedSeoSubject($this->subjectResolver, $model, 'seo.meta.delete');
+
+        if ($model instanceof ActionResult) {
+            return $model;
         }
 
-        $meta = $this->repository->findFor($model, $locale);
+        try {
+            $meta = DB::transaction(fn (): ?SeoMeta => $this->repository->delete($model, $locale));
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return ActionResult::error(
+                message: __('SEO meta podatke trenutno nije moguće obrisati.'),
+                code: 'seo_delete_failed',
+            );
+        }
 
         if (! $meta instanceof SeoMeta) {
             return ActionResult::error(
@@ -32,24 +49,12 @@ final readonly class DeleteSeoMetaAction
             );
         }
 
-        $metaKey = $meta->getKey();
-        $metaId = is_int($metaKey) || is_string($metaKey) ? $metaKey : (string) $metaKey;
-        $seoableType = (string) $meta->seoable_type;
-        $rawSeoableId = $meta->seoable_id;
-        $seoableId = is_int($rawSeoableId) || is_string($rawSeoableId) ? $rawSeoableId : (string) $rawSeoableId;
-        $storedLocale = is_string($meta->locale) ? $meta->locale : null;
-
-        DB::transaction(static function () use ($meta): void {
-            /** @var SeoMeta $lockedMeta */
-            $lockedMeta = SeoMeta::query()
-                ->whereKey($meta->getKey())
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $lockedMeta->delete();
-        });
-
-        event(new SeoMetaDeleted($metaId, $seoableType, $seoableId, $storedLocale));
+        event(new SeoMetaDeleted(
+            $meta->getKey(),
+            $meta->seoable_type,
+            $meta->seoable_id,
+            $meta->locale,
+        ));
 
         return ActionResult::success(__('SEO meta podaci su obrisani.'));
     }
