@@ -174,7 +174,7 @@ final class SeoFormDefaults
         }
 
         foreach ($attributes as $attribute) {
-            $value = $this->model->getAttribute($attribute);
+            $value = OptionalModelAttribute::get($this->model, $attribute);
 
             if ($value !== null && $value !== '') {
                 return $this->string($value, $limit);

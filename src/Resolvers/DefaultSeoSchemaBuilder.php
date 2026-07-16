@@ -7,6 +7,7 @@ namespace IvanBaric\Seo\Resolvers;
 use Illuminate\Database\Eloquent\Model;
 use IvanBaric\Seo\Contracts\SeoSchemaBuilder;
 use IvanBaric\Seo\Data\SeoData;
+use IvanBaric\Seo\Support\OptionalModelAttribute;
 
 final class DefaultSeoSchemaBuilder implements SeoSchemaBuilder
 {
@@ -35,8 +36,8 @@ final class DefaultSeoSchemaBuilder implements SeoSchemaBuilder
     private function modelData(Model $model): array
     {
         return [
-            'title' => $model->getAttribute('title') ?: $model->getAttribute('name'),
-            'description' => $model->getAttribute('description') ?: $model->getAttribute('excerpt'),
+            'title' => OptionalModelAttribute::get($model, 'title') ?: OptionalModelAttribute::get($model, 'name'),
+            'description' => OptionalModelAttribute::get($model, 'description') ?: OptionalModelAttribute::get($model, 'excerpt'),
             'canonical_url' => method_exists($model, 'seoCanonicalUrl') ? $model->seoCanonicalUrl() : null,
         ];
     }

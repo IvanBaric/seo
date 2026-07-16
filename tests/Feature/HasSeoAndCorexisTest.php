@@ -10,6 +10,7 @@ use IvanBaric\Corexis\Contracts\TenantResolver;
 use IvanBaric\Seo\Actions\DeleteSeoMetaAction;
 use IvanBaric\Seo\Actions\UpdateSeoMetaAction;
 use IvanBaric\Seo\Models\SeoMeta;
+use IvanBaric\Seo\Support\OptionalModelAttribute;
 use IvanBaric\Seo\Tests\Fixtures\Models\SeoFixtureModel;
 use IvanBaric\Seo\Tests\Fixtures\Resolvers\FakeLocaleResolver;
 use IvanBaric\Seo\Tests\Fixtures\Resolvers\FakeTenantResolver;
@@ -109,6 +110,15 @@ final class HasSeoAndCorexisTest extends TestCase
         $this->assertSame('https://example.test/fixtures/'.$model->getKey(), $model->seoData()->canonicalUrl);
         $this->assertSame('https://example.test/default-fixture.jpg', $model->seoData()->ogImage);
         $this->assertSame('Article', $model->seoData()->schema['@type']);
+    }
+
+    public function test_optional_fallback_attributes_skip_columns_that_were_not_selected(): void
+    {
+        SeoFixtureModel::query()->create(['title' => 'Partial model']);
+        $model = SeoFixtureModel::query()->select(['id'])->firstOrFail();
+
+        $this->assertNull(OptionalModelAttribute::get($model, 'image_url'));
+        $this->assertNull(OptionalModelAttribute::get($model, 'missing_attribute'));
     }
 
     public function test_noindex_model_gets_noindex_robots_without_manual_override(): void

@@ -127,7 +127,7 @@ final class SeoFallbackResolver
     private function attribute(Model $model, array $attributes): mixed
     {
         foreach ($attributes as $attribute) {
-            $value = $model->getAttribute($attribute);
+            $value = OptionalModelAttribute::get($model, $attribute);
 
             if ($value !== null && $value !== '') {
                 return $value;

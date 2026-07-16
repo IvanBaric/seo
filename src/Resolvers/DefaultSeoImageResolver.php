@@ -6,6 +6,7 @@ namespace IvanBaric\Seo\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
 use IvanBaric\Seo\Contracts\SeoImageResolver;
+use IvanBaric\Seo\Support\OptionalModelAttribute;
 use IvanBaric\Seo\Support\SeoValueNormalizer;
 
 final class DefaultSeoImageResolver implements SeoImageResolver
@@ -32,7 +33,7 @@ final class DefaultSeoImageResolver implements SeoImageResolver
         }
 
         foreach ((array) config('seo.fallbacks.image', []) as $attribute) {
-            $url = $this->normalizer->url($model->getAttribute((string) $attribute));
+            $url = $this->normalizer->url(OptionalModelAttribute::get($model, (string) $attribute));
 
             if ($url !== null) {
                 return $url;
