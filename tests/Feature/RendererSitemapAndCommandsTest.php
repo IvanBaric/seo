@@ -23,6 +23,9 @@ final class RendererSitemapAndCommandsTest extends TestCase
             'description' => 'A description',
             'canonical_url' => 'javascript:alert(1)',
             'og_image' => 'data:text/plain,abc',
+            'og_image_alt' => 'Preview image',
+            'og_site_name' => 'Example site',
+            'twitter_image_alt' => 'Preview image',
             'schema' => ['name' => '<Unsafe>'],
         ])->toHtml();
 
@@ -30,6 +33,9 @@ final class RendererSitemapAndCommandsTest extends TestCase
         $this->assertStringContainsString('content="A description"', $html);
         $this->assertStringNotContainsString('javascript:alert', $html);
         $this->assertStringNotContainsString('data:text', $html);
+        $this->assertStringContainsString('property="og:image:alt" content="Preview image"', $html);
+        $this->assertStringContainsString('property="og:site_name" content="Example site"', $html);
+        $this->assertStringContainsString('name="twitter:image:alt" content="Preview image"', $html);
         $this->assertStringContainsString('application/ld+json', $html);
         $this->assertStringContainsString('\\u003CUnsafe\\u003E', $html);
     }
@@ -81,6 +87,16 @@ final class RendererSitemapAndCommandsTest extends TestCase
         $tenantTwentyKey = $generator->cacheKey();
 
         $this->assertNotSame($tenantTenKey, $tenantTwentyKey);
+    }
+
+    public function test_sitemap_cache_can_be_invalidated(): void
+    {
+        $generator = app(SitemapGenerator::class);
+        $initialKey = $generator->cacheKey();
+
+        $generator->invalidate();
+
+        $this->assertNotSame($initialKey, $generator->cacheKey());
     }
 
     public function test_cached_sitemap_content_is_not_shared_between_tenants(): void

@@ -10,7 +10,19 @@ final class SeoValueNormalizer
 {
     public function string(mixed $value, ?int $limit = null): ?string
     {
+        if (is_array($value)) {
+            $locale = function_exists('corexis_locale_code')
+                ? corexis_locale_code()
+                : app()->getLocale();
+            $fallback = (string) config('app.fallback_locale', 'en');
+            $value = $value[$locale] ?? $value[$fallback] ?? reset($value);
+        }
+
         if ($value === null) {
+            return null;
+        }
+
+        if (! is_scalar($value) && ! $value instanceof \Stringable) {
             return null;
         }
 

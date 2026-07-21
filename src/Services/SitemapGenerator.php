@@ -42,6 +42,11 @@ final class SitemapGenerator
         return $xml;
     }
 
+    public function invalidate(): void
+    {
+        $this->cache->forever($this->cacheVersionKey(), bin2hex(random_bytes(16)));
+    }
+
     private function build(): string
     {
         $urls = [];
@@ -180,11 +185,19 @@ final class SitemapGenerator
             'host' => app()->runningInConsole()
                 ? (string) config('app.url')
                 : request()->getSchemeAndHttpHost(),
+            'version' => $this->cache->get($this->cacheVersionKey(), '1'),
         ], JSON_THROW_ON_ERROR));
 
         return (string) config('seo.cache.prefix', 'seo')
             .':'.(string) config('seo.sitemap.cache_key', 'sitemap')
             .':'.$context;
+    }
+
+    private function cacheVersionKey(): string
+    {
+        return (string) config('seo.cache.prefix', 'seo')
+            .':'.(string) config('seo.sitemap.cache_key', 'sitemap')
+            .':version';
     }
 
     private function cacheEnabled(): bool

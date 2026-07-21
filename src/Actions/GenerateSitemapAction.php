@@ -19,9 +19,9 @@ final readonly class GenerateSitemapAction
         private SitemapWritePath $writePath,
     ) {}
 
-    public function handle(bool $fresh = false, bool $cache = true, ?string $writePath = null): ActionResult
+    public function handle(bool $fresh = false, bool $cache = true, ?string $writePath = null, bool $authorize = true): ActionResult
     {
-        if ($result = corexis_authorization_result('seo.sitemap.generate')) {
+        if ($authorize && ($result = corexis_authorization_result('seo.sitemap.generate'))) {
             return $result;
         }
 

@@ -36,7 +36,9 @@ final class HtmlSeoRenderer implements SeoRenderer
             $this->meta($lines, 'property', 'og:title', $data->ogTitle);
             $this->meta($lines, 'property', 'og:description', $data->ogDescription);
             $this->meta($lines, 'property', 'og:image', $this->normalizer->url($data->ogImage));
+            $this->meta($lines, 'property', 'og:image:alt', $data->ogImageAlt);
             $this->meta($lines, 'property', 'og:type', $data->ogType);
+            $this->meta($lines, 'property', 'og:site_name', $data->ogSiteName);
             $this->meta($lines, 'property', 'og:url', $this->normalizer->url($data->canonicalUrl));
         }
 
@@ -45,6 +47,7 @@ final class HtmlSeoRenderer implements SeoRenderer
             $this->meta($lines, 'name', 'twitter:title', $data->twitterTitle);
             $this->meta($lines, 'name', 'twitter:description', $data->twitterDescription);
             $this->meta($lines, 'name', 'twitter:image', $this->normalizer->url($data->twitterImage));
+            $this->meta($lines, 'name', 'twitter:image:alt', $data->twitterImageAlt);
         }
 
         foreach ($data->alternates as $alternate) {

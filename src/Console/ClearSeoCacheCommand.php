@@ -15,7 +15,7 @@ final class ClearSeoCacheCommand extends Command
 
     public function handle(RefreshSeoCacheAction $action): int
     {
-        $result = $action->handle();
+        $result = $action->handle(authorize: false);
 
         if ($result->failed()) {
             $this->error($result->message);

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace IvanBaric\Seo\Actions;
 
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use IvanBaric\Corexis\Data\ActionResult;
 use IvanBaric\Seo\Events\SeoCacheRefreshed;
 use IvanBaric\Seo\Services\SitemapGenerator;
@@ -12,19 +11,18 @@ use IvanBaric\Seo\Services\SitemapGenerator;
 final readonly class RefreshSeoCacheAction
 {
     public function __construct(
-        private CacheRepository $cache,
         private SitemapGenerator $generator,
     ) {}
 
-    public function handle(): ActionResult
+    public function handle(bool $authorize = true): ActionResult
     {
-        if ($result = corexis_authorization_result('seo.sitemap.generate')) {
+        if ($authorize && ($result = corexis_authorization_result('seo.sitemap.generate'))) {
             return $result;
         }
 
         $cacheKey = $this->generator->cacheKey();
 
-        $this->cache->forget($cacheKey);
+        $this->generator->invalidate();
 
         event(new SeoCacheRefreshed($cacheKey));
 

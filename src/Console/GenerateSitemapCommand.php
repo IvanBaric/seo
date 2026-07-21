@@ -19,6 +19,7 @@ final class GenerateSitemapCommand extends Command
             fresh: (bool) $this->option('fresh'),
             cache: ! (bool) $this->option('no-cache'),
             writePath: is_string($this->option('write')) ? (string) $this->option('write') : null,
+            authorize: false,
         );
 
         if ($result->failed()) {
